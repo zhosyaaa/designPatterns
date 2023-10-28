@@ -2,49 +2,44 @@ package clients
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"net/http"
+	"sync"
 )
 
 type CurrencyClient struct {
-	APIKey        string
-	exchangeRates map[string]interface{}
 }
 
-func NewCurrencyClient(apiKey string) *CurrencyClient {
-	return &CurrencyClient{
-		APIKey: apiKey,
-	}
+func NewCurrencyClient() *CurrencyClient {
+	return &CurrencyClient{}
 }
 
-func (c *CurrencyClient) GetExchangeRates() (map[string]interface{}, error) {
-	API_URL := "https://api.apilayer.com/exchangerates_data/latest" // URL API для получения данных о курсах валют
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", API_URL, nil)
+var (
+	currencyData map[string]float64
+	mu           sync.Mutex
+)
+
+func (c *CurrencyClient) GetExchangeRates() (map[string]float64, error) {
+	mu.Lock()
+	defer mu.Unlock()
+	API_URL := "https://open.er-api.com/v6/latest/USD"
+	resp, err := http.Get(API_URL)
 	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", "Bearer "+c.APIKey)
-	resp, err := client.Do(req)
-	if err != nil {
+		log.Error().Err(err).Msg("Error fetching data")
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP Error: %s", resp.Status)
-	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		log.Error().Err(err).Msg("Error reading data")
 		return nil, err
 	}
-	var data map[string]interface{}
+	var data map[string]float64
 	if err := json.Unmarshal(body, &data); err != nil {
+		log.Error().Err(err).Msg("Error parsing data")
 		return nil, err
 	}
-	fmt.Println("data: ", data)
-	exchangeRates := data["rates"].(map[string]interface{})
-	fmt.Println("exchangeRates: ", exchangeRates)
-	c.exchangeRates = exchangeRates
-	return exchangeRates, nil
+	currencyData = data
+	return currencyData, nil
 }

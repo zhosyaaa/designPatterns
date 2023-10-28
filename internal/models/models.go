@@ -1,6 +1,8 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type User struct {
 	gorm.Model
@@ -18,4 +20,12 @@ type Payment struct {
 	User     User   `gorm:"foreignkey:UserID"`
 	Amount   int64  `json:"amount"`
 	Currency string `json:"currency"`
+}
+
+type Subscription struct {
+	ID            uint
+	UserID        uint
+	User          User `gorm:"foreignkey:UserID"`
+	Currency      string
+	NotifyAddress string
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"pattern/internal/models"
 	"sync"
 )
 
@@ -23,6 +24,7 @@ func GetDBInstance() (*gorm.DB, error) {
 			log.Error().Err(err).Msg("Error connecting to database")
 			return
 		}
+		db.AutoMigrate(&models.User{}, &models.Payment{}, &models.Subscription{})
 		log.Info().Msg("Connected to the database")
 	})
 	return db, err

@@ -2,8 +2,6 @@ package middlewares
 
 import (
 	"fmt"
-	"os"
-	"pattern/internal/clients"
 	"pattern/internal/models"
 	"pattern/internal/repositories/interfaces"
 )
@@ -13,30 +11,31 @@ type CurrencyConversionDecorator struct {
 	CurrencyConverter interfaces.CurrencyConverter
 }
 
-func (c *CurrencyConversionDecorator) Convert(amount int64, fromCurrency string, toCurrency string) (int64, error) {
-	client := clients.NewCurrencyClient(os.Getenv("API_KEY"))
-	exchangeRates, err := client.GetExchangeRates()
-	if err != nil {
-		return 0, err
-	}
-
-	fromRate, existsFrom := exchangeRates[fromCurrency]
-	toRate, existsTo := exchangeRates[toCurrency]
-
-	if !existsFrom || !existsTo {
-		return 0, fmt.Errorf("Invalid currency conversion")
-	}
-
-	fromRateFloat, okFrom := fromRate.(int64)
-	toRateFloat, okTo := toRate.(int64)
-
-	if !okFrom || !okTo {
-		return 0, fmt.Errorf("Invalid exchange rate format")
-	}
-
-	convertedAmount := amount * (toRateFloat / fromRateFloat)
-	return convertedAmount, nil
-}
+//
+//func (c *CurrencyConversionDecorator) Convert(amount int64, fromCurrency string, toCurrency string) (int64, error) {
+//	client := clients.NewCurrencyClient()
+//	exchangeRates, err := client.GetExchangeRates()
+//	if err != nil {
+//		return 0, err
+//	}
+//
+//	//fromRate, existsFrom := exchangeRates[fromCurrency]
+//	//toRate, existsTo := exchangeRates[toCurrency]
+//	//
+//	//if !existsFrom || !existsTo {
+//	//	return 0, fmt.Errorf("Invalid currency conversion")
+//	//}
+//	//
+//	////fromRateFloat, okFrom := fromRate.(int64)
+//	////toRateFloat, okTo := toRate.(int64)
+//	//
+//	//if !okFrom || !okTo {
+//	//	return 0, fmt.Errorf("Invalid exchange rate format")
+//	//}
+//	//
+//	//convertedAmount := amount * (toRateFloat / fromRateFloat)
+//	//return convertedAmount, nil
+//}
 
 func (c *CurrencyConversionDecorator) ProcessPayment(payment *models.Payment) error {
 	fmt.Println("ProcessPayment start")

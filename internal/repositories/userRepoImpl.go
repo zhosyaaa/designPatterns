@@ -50,3 +50,32 @@ func (u *UserRepository) AddPaymentToUser(userID uint, payment *models.Payment) 
 	}
 	return nil
 }
+
+func (u *UserRepository) CreateSubscription(subscription *models.Subscription) error {
+	if err := u.db.Create(subscription).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (u *UserRepository) DeleteSubscription(userID uint, currency string) error {
+	if err := u.db.Where("user_id = ? AND currency = ?", userID, currency).Delete(&models.Subscription{}).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *UserRepository) GetSubscribersByCurrency(currency string) ([]models.User, error) {
+	var users []models.User
+
+	if err := r.db.Table("subscriptions").
+		Select("users.*").
+		Joins("JOIN users ON subscriptions.user_id = users.id").
+		Where("subscriptions.currency = ?", currency).
+		Find(&users).Error; err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}

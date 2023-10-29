@@ -23,7 +23,7 @@ type Payment struct {
 }
 
 type Subscription struct {
-	ID            uint
+	gorm.Model
 	UserID        uint
 	User          User `gorm:"foreignkey:UserID"`
 	Currency      string

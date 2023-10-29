@@ -1,24 +1,26 @@
 package controllers
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/gomail.v2"
 	"net/http"
+	"net/smtp"
 	"pattern/internal/clients"
 	"pattern/internal/models"
-	"pattern/internal/repositories/interfaces"
+	"pattern/internal/repositories"
 	"time"
 )
 
 type CurrencyController struct {
-	userRepo interfaces.UserRepository
+	userRepo repositories.UserRepository
 	client   clients.CurrencyClient
 }
 
-func NewCurrencyController(userRepo interfaces.UserRepository) *CurrencyController {
-	return &CurrencyController{userRepo: userRepo, client: clients.CurrencyClient{}}
+func NewCurrencyController(userRepo repositories.UserRepository, client clients.CurrencyClient) *CurrencyController {
+	return &CurrencyController{userRepo: userRepo, client: client}
 }
 
 func (c CurrencyController) GetCurrencies(context *gin.Context) {
@@ -50,30 +52,46 @@ func (c CurrencyController) GetCurrencies(context *gin.Context) {
 
 func (c CurrencyController) SubscribeUser(context *gin.Context) {
 	var subscriptionData struct {
-		UserID       uint
-		Currency     string
-		NotifyMethod string
+		Currency string
 	}
 
 	if err := context.ShouldBindJSON(&subscriptionData); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
 		return
 	}
-	user, err := c.userRepo.GetUserByID(subscriptionData.UserID)
+
+	userEmail, emailExists := context.Get("email")
+	if !emailExists {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "User email not found"})
+		return
+	}
+
+	email, ok := userEmail.(string)
+	if !ok {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert email to string"})
+		return
+	}
+
+	user, err := c.userRepo.GetUserByEmail(email)
 	if err != nil {
 		context.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
 	newSubscription := models.Subscription{
-		UserID:   subscriptionData.UserID,
-		Currency: subscriptionData.Currency,
+		UserID:        user.ID,
+		Currency:      subscriptionData.Currency,
+		NotifyAddress: email,
 	}
 
 	err = c.userRepo.CreateSubscription(&newSubscription)
 	if err != nil {
 		context.JSON(http.StatusNotFound, gin.H{"error": "Error when creating Subscription"})
 		return
+	}
+
+	if err = c.Notify(user, "KZT", 500); err != nil {
+		fmt.Println("notify", err)
 	}
 
 	log.Info().Msgf("User %s (ID: %d) subscribed to currency %s",
@@ -83,7 +101,6 @@ func (c CurrencyController) SubscribeUser(context *gin.Context) {
 
 func (c CurrencyController) UnsubscribeUser(context *gin.Context) {
 	var unsubscribeData struct {
-		UserID   uint
 		Currency string
 	}
 
@@ -92,13 +109,25 @@ func (c CurrencyController) UnsubscribeUser(context *gin.Context) {
 		return
 	}
 
-	user, err := c.userRepo.GetUserByID(unsubscribeData.UserID)
+	userEmail, emailExists := context.Get("email")
+	if !emailExists {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "User email not found"})
+		return
+	}
+
+	email, ok := userEmail.(string)
+	if !ok {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to convert email to string"})
+		return
+	}
+
+	user, err := c.userRepo.GetUserByEmail(email)
 	if err != nil {
 		context.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	if err := c.userRepo.DeleteSubscription(unsubscribeData.UserID, unsubscribeData.Currency); err != nil {
+	if err := c.userRepo.DeleteSubscription(user.ID, unsubscribeData.Currency); err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unsubscribe"})
 		return
 	}
@@ -121,14 +150,16 @@ func (c CurrencyController) Notify(user *models.User, currency string, newRate f
 
 func (c CurrencyController) SendEmail(to, subject, body string) error {
 	m := gomail.NewMessage()
-	m.SetHeader("From", "musabecova05@gmail.com")
+	m.SetHeader("From", "SMTP for My App (musabecova05@gmail.com)")
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", body)
+	buf := new(bytes.Buffer)
+	m.WriteTo(buf)
 
-	d := gomail.NewDialer("smtp.gmail.com", 587, "musabecova05@gmail.com", "mcSultan1")
-
-	if err := d.DialAndSend(m); err != nil {
+	appPassword := "mayf ayum loqn haqs"
+	err := smtp.SendMail("smtp.gmail.com:587", smtp.PlainAuth("gmail", "musabecova05@gmail.com", appPassword, "smtp.gmail.com"), "musabecova05@gmail.com", []string{to}, buf.Bytes())
+	if err != nil {
 		return err
 	}
 
@@ -142,7 +173,7 @@ func (c CurrencyController) CheckUpdates() {
 		newRates, err := c.client.GetExchangeRates()
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to fetch currency rates")
-			time.Sleep(5 * time.Minute)
+			time.Sleep(1 * time.Minute)
 			continue
 		}
 
@@ -170,7 +201,8 @@ func (c CurrencyController) CheckUpdates() {
 				lastRates[currency] = newRate
 			}
 		}
+		time.Sleep(1 * time.Minute)
+		lastRates["KZT"] = 501
 
-		time.Sleep(5 * time.Minute)
 	}
 }

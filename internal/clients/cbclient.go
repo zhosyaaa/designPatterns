@@ -2,11 +2,23 @@ package clients
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"net/http"
 	"sync"
 )
+
+type ExchangeRates struct {
+	Result            string             `json:"result"`
+	Provider          string             `json:"provider"`
+	Documentation     string             `json:"documentation"`
+	TermsOfUse        string             `json:"terms_of_use"`
+	TimeLastUpdateUTC string             `json:"time_last_update_utc"`
+	TimeNextUpdateUTC string             `json:"time_next_update_utc"`
+	BaseCode          string             `json:"base_code"`
+	Rates             map[string]float64 `json:"rates"`
+}
 
 type CurrencyClient struct {
 }
@@ -35,11 +47,12 @@ func (c *CurrencyClient) GetExchangeRates() (map[string]float64, error) {
 		log.Error().Err(err).Msg("Error reading data")
 		return nil, err
 	}
-	var data map[string]float64
-	if err := json.Unmarshal(body, &data); err != nil {
-		log.Error().Err(err).Msg("Error parsing data")
+	var exchangeRates ExchangeRates
+	err = json.Unmarshal([]byte(body), &exchangeRates)
+	if err != nil {
+		fmt.Println("Error parsing JSON:", err)
 		return nil, err
 	}
-	currencyData = data
+	currencyData = exchangeRates.Rates
 	return currencyData, nil
 }

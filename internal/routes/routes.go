@@ -12,8 +12,8 @@ type Routes struct {
 	curr controllers.CurrencyController
 }
 
-func NewRoutes(pay controllers.PaymentController, auth controllers.AuthController) *Routes {
-	return &Routes{pay: pay, auth: auth}
+func NewRoutes(pay controllers.PaymentController, auth controllers.AuthController, curr controllers.CurrencyController) *Routes {
+	return &Routes{pay: pay, auth: auth, curr: curr}
 }
 
 func (r *Routes) SetupRouter(router *gin.Engine) *gin.Engine {
@@ -29,11 +29,11 @@ func (r *Routes) SetupRouter(router *gin.Engine) *gin.Engine {
 			authRouter.POST("/register", r.auth.RegisterUserHandler)
 			authRouter.POST("/login", r.auth.LoginHandler)
 		}
-		observer := app.Group("/currency", middlewares.RequireAuthMiddleware)
+		observer := app.Group("/currency")
 		{
 			observer.GET("/:symbol", r.curr.GetCurrencies)
-			observer.POST("/subscribe", r.curr.SubscribeUser)
-			observer.POST("/unsubscribe", r.curr.UnsubscribeUser)
+			observer.POST("/subscribe", middlewares.RequireAuthMiddleware, r.curr.SubscribeUser)
+			observer.POST("/unsubscribe", middlewares.RequireAuthMiddleware, r.curr.UnsubscribeUser)
 		}
 	}
 	return router

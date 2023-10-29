@@ -1,7 +1,9 @@
 package app
 
 import (
+	"fmt"
 	"log"
+	"pattern/internal/clients"
 	"pattern/internal/controllers"
 	"pattern/internal/db"
 	"pattern/internal/helpers"
@@ -26,7 +28,6 @@ func SetupApp() routes.Routes {
 	purchase.RegisterStrategy("Kaspi", kaspi)
 	purchase.RegisterStrategy("PayPal", payPal)
 	pay := controllers.NewPaymentController(*purchase, *userRepo)
-	router := routes.NewRoutes(*pay, *auth)
 	counterSource := helpers.NewCounterMetricsSource()
 	timerSource := helpers.NewTimerMetricsSource()
 
@@ -44,5 +45,11 @@ func SetupApp() routes.Routes {
 	prometheusAdapter.RegisterTimer("prometheus_request_duration_seconds")
 	prometheusAdapter.RecordTime("prometheus_request_duration_seconds", 1.0)
 
+	client := &clients.CurrencyClient{}
+
+	fmt.Println("userrepo in app:", userRepo)
+	currency := controllers.NewCurrencyController(*userRepo, *client)
+	go currency.CheckUpdates()
+	router := routes.NewRoutes(*pay, *auth, *currency)
 	return *router
 }

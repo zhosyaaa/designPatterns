@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	"gorm.io/gorm"
 	"pattern/internal/models"
 )
@@ -32,7 +33,9 @@ func (r *UserRepository) GetUserByID(id uint) (*models.User, error) {
 
 func (r *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
+	fmt.Println(r.db)
 	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	return &user, nil
@@ -72,7 +75,7 @@ func (r *UserRepository) GetSubscribersByCurrency(currency string) ([]models.Use
 	if err := r.db.Table("subscriptions").
 		Select("users.*").
 		Joins("JOIN users ON subscriptions.user_id = users.id").
-		Where("subscriptions.currency = ?", currency).
+		Where("subscriptions.currency = ? AND subscriptions.deleted_at IS NULL", currency).
 		Find(&users).Error; err != nil {
 		return nil, err
 	}

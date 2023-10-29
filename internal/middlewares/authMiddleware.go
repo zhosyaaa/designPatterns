@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"pattern/internal/utils"
@@ -45,5 +46,6 @@ func RequireAuthMiddleware(c *gin.Context) {
 	}
 	c.Set("id", id)
 	c.Set("email", email)
+	fmt.Println(email)
 	c.Next()
 }

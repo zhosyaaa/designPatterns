@@ -30,6 +30,7 @@ func SetupApp() routes.Routes {
 	currencyService := services.NewCurrencyService(*userRepo)
 	currency := controllers.NewCurrencyController(*userRepo, *client, *currencyService)
 	go currencyService.CheckUpdates()
-	router := routes.NewRoutes(*pay, *auth, *currency)
+	trans := controllers.NewTransactionController()
+	router := routes.NewRoutes(*pay, *auth, *currency, *trans)
 	return *router
 }

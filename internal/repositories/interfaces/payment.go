@@ -4,7 +4,6 @@ import "pattern/internal/models"
 
 type ProcessPayment interface {
 	ProcessPayment(payment *models.Payment) error
-	CheckPaymentStatus(paymentID string) string
 }
 
 type PaymentService interface {

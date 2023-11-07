@@ -13,6 +13,10 @@ type Routes struct {
 	trans controllers.TransactionController
 }
 
+func NewRoutes(pay controllers.PaymentController, auth controllers.AuthController, curr controllers.CurrencyController, trans controllers.TransactionController) *Routes {
+	return &Routes{pay: pay, auth: auth, curr: curr, trans: trans}
+}
+
 func (r *Routes) SetupRouter(router *gin.Engine) *gin.Engine {
 	app := router.Group("/app/v1")
 	{

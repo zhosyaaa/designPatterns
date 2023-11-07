@@ -7,13 +7,10 @@ import (
 )
 
 type Routes struct {
-	pay  controllers.PaymentController
-	auth controllers.AuthController
-	curr controllers.CurrencyController
-}
-
-func NewRoutes(pay controllers.PaymentController, auth controllers.AuthController, curr controllers.CurrencyController) *Routes {
-	return &Routes{pay: pay, auth: auth, curr: curr}
+	pay   controllers.PaymentController
+	auth  controllers.AuthController
+	curr  controllers.CurrencyController
+	trans controllers.TransactionController
 }
 
 func (r *Routes) SetupRouter(router *gin.Engine) *gin.Engine {
@@ -34,6 +31,10 @@ func (r *Routes) SetupRouter(router *gin.Engine) *gin.Engine {
 			observer.GET("/:symbol", r.curr.GetCurrencies)
 			observer.POST("/subscribe", middlewares.RequireAuthMiddleware, r.curr.SubscribeUser)
 			observer.POST("/unsubscribe", middlewares.RequireAuthMiddleware, r.curr.UnsubscribeUser)
+		}
+		transaction := app.Group("/transaction")
+		{
+			transaction.POST("/:type", r.trans.Transaction)
 		}
 	}
 	return router

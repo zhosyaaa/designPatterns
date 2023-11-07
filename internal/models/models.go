@@ -29,3 +29,8 @@ type Subscription struct {
 	Currency      string
 	NotifyAddress string
 }
+
+type Currency struct {
+	Name  string
+	Value float64
+}

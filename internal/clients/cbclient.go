@@ -2,7 +2,6 @@ package clients
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"net/http"
@@ -50,7 +49,7 @@ func (c *CurrencyClient) GetExchangeRates() (map[string]float64, error) {
 	var exchangeRates ExchangeRates
 	err = json.Unmarshal([]byte(body), &exchangeRates)
 	if err != nil {
-		fmt.Println("Error parsing JSON:", err)
+		log.Error().Err(err).Msg("Error parsing JSON")
 		return nil, err
 	}
 	currencyData = exchangeRates.Rates
